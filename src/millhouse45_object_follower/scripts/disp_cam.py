@@ -43,8 +43,19 @@ def disp_cam():
         cv2.putText(overlay, f"{label}", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         cv2.imshow("frame", overlay)
         cv2.imshow("mask", mask)
+        cv2.waitKey(1)
 
     node.create_subscription(CompressedImage, '/image_raw/compressed', image_callback, CUSTOM_QOS_PROFILE)
+
+    try:
+        rclpy.spin(node)  # keep the node alive so image_callback runs
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     disp_cam()
