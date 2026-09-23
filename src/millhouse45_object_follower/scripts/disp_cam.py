@@ -1,45 +1,50 @@
+#!/usr/bin/env python3
+"""
+Brian Huntley
+Ankit Mehta
+"""
 import cv2
+import rclpy
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+from sensor_msgs.msg import CompressedImage
+from cv_bridge import CvBridge
+
 from .detector import detect_object
 
-def main():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("unable to open camera")
-        exit()
+CUSTOM_QOS_PROFILE = QoSProfile(
+    reliability=QoSReliabilityPolicy.BEST_EFFORT,
+    history=QoSHistoryPolicy.KEEP_LAST,
+    durability=QoSDurabilityPolicy.VOLATILE,
+    depth=1
+)
 
-    # Camera is open at this point
-    try:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                print("unable to grab frame")
-                break
-            coords, radius, mask = detect_object(frame)
+def disp_cam():
+    rclpy.init()
+    node = rclpy.create_node('disp_cam')
+    bridge = CvBridge()
 
-            overlay = frame.copy()
-            if coords is not None:
-                # Draw bounding box
-                cx, cy = int(round(coords[0])), int(round(coords[1]))
-                color = (0, 255, 0)
-                cv2.circle(overlay, (cx, cy), int(round(radius)), color, 2)
-                cv2.circle(overlay, (cx, cy), 4, color, -1)
+    def image_callback(image_message):
+        # Camera is open at this point
+        frame = bridge.compressed_imgmsg_to_cv2(image_message, 'bgr8')
+        coords, radius, mask = detect_object(frame)
 
-                label = (f"cx: {cx}, cy: {cy}")
-            else:
-                label = "no ball"
+        overlay = frame.copy()
+        if coords is not None:
+            # Draw bounding box
+            cx, cy = int(round(coords[0])), int(round(coords[1]))
+            color = (0, 255, 0)
+            cv2.circle(overlay, (cx, cy), int(round(radius)), color, 2)
+            cv2.circle(overlay, (cx, cy), 4, color, -1)
 
-            cv2.putText(overlay, f"{label}", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            cv2.imshow("frame", overlay)
-            cv2.imshow("mask", mask)
+            label = (f"cx: {cx}, cy: {cy}")
+        else:
+            label = "no ball"
 
-            if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
-                 break
+        cv2.putText(overlay, f"{label}", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.imshow("frame", overlay)
+        cv2.imshow("mask", mask)
 
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
+    node.create_subscription(CompressedImage, '/image_raw/compressed', image_callback, CUSTOM_QOS_PROFILE)
 
-    return None
-
-
-main()
+if __name__ == '__main__':
+    disp_cam()
