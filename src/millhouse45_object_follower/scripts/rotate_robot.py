@@ -40,7 +40,7 @@ def main():
 
         cmd_vel_publisher.publish(twist)
 
-    node.create_subscription(ObjInfo, OBJ_INFO_TOPIC, obj_callback, 5, CUSTOM_QOS_PROFILE)
+    node.create_subscription(ObjInfo, OBJ_INFO_TOPIC, obj_callback, CUSTOM_QOS_PROFILE)
     rclpy.spin(node)
 
 if __name__ == '__main__':
