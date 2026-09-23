@@ -9,7 +9,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge
 
-from .detector import detect_object
+from detector import detect_object
 
 CUSTOM_QOS_PROFILE = QoSProfile(
     reliability=QoSReliabilityPolicy.BEST_EFFORT,

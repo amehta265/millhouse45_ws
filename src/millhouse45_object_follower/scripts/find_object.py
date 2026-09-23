@@ -10,7 +10,7 @@ from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, QoS
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge
 
-from .detector import detect_object
+from detector import detect_object
 from millhouse45_object_follower.msg import ObjInfo
 
 OBJ_INFO_TOPIC = '/obj/info'
