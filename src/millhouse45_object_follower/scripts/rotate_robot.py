@@ -30,18 +30,29 @@ def main():
     def obj_callback(msg):
         twist = Twist()   # all zeros = stay in place
 
-        # I'm making the assumption that if the ball is within 20px of the center I'm counting that as being in the middle so dont move
+        # If the ball is within DEADBAND_PX of the center it counts as being in front, so don't move
         if msg.found:
             offset = msg.obj_center_x - msg.image_center_x   # positive = ball is right of center
-            if offset > 20:
-                twist.angular.z = -0.3     # turn right
-            elif offset < -20:
-                twist.angular.z = -0.3      # turn left
+            if abs(offset) > 30:
+                # So looks like +angular.z = counter-clockwise (left), -angular.z = clockwise (right)
+                # Ball on the right would mean that the offset > 0 so negative z so it shall turn right. Same thing the other way round
+                # Also want the robot to slow down as it think it is approaching the ball so it dont overshoot
+                ang = -0.003 * offset
+                twist.angular.z = max(-0.5, min(0.5, ang))
 
         cmd_vel_publisher.publish(twist)
 
     node.create_subscription(ObjInfo, OBJ_INFO_TOPIC, obj_callback, CUSTOM_QOS_PROFILE)
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if rclpy.ok():
+            cmd_vel_publisher.publish(Twist())
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
