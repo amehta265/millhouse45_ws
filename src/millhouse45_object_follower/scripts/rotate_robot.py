@@ -30,7 +30,7 @@ def main():
     def obj_callback(msg):
         twist = Twist()   # all zeros = stay in place
 
-        # If the ball is within deadband of the center it counts as being in front, so don't move
+        # If the ball is within deadband of the center it counts as being in front, so don't move. Chose 20 via trial and error
         if msg.found:
             # Ofsset is basically how many pixels away is the ball from the center of the img
             offset = msg.obj_center_x - msg.image_center_x   # positive = ball is right of center + vice versa

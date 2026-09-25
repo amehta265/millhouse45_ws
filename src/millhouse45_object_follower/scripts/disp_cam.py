@@ -23,6 +23,7 @@ def disp_cam():
     node = rclpy.create_node('disp_cam')
     bridge = CvBridge()
 
+    # All the below logic is pulled from lab 1 and added here
     def image_callback(image_message):
         # Camera is open at this point
         frame = bridge.compressed_imgmsg_to_cv2(image_message, 'bgr8')

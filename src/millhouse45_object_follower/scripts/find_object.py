@@ -36,12 +36,17 @@ def main():
         # disp_cam should have its own debugging stuff now 
         coords, _, _ = detect_object(frame)
 
+        # We need to publish this message to rotate_robot so we create it
         msg = ObjInfo()
         msg.found = coords is not None
         # If you find the obj
         if msg.found:
             msg.obj_center_x = float(coords[0])
+
+        # Technically this can be removed from the custom message (or get rid of the custom message alltogether) if you are
+        # making the assumption below and not really calculating the image center.
         msg.image_center_x = frame.shape[1] / 2.0   # Kinda assuming that the images center is the width img / 2
+
         obj_info_publisher.publish(msg)
 
     # In order to get image data
