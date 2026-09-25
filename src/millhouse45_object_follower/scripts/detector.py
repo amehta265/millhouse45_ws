@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Brian Huntley
 Ankit Mehta
@@ -38,11 +39,11 @@ def create_mask(frame):
     # Now we perform more "advanced" convolutions
     # Opening which is erosion + dilation. It helps remove background noise e.g. if there are "white" dots in my
     # background but I only want the red ball to be white, this should help with that
-    kerneled_img = cv2.morphologyEx(kerneled_img, cv2.MORPH_OPEN, (5,5))
+    kerneled_img = cv2.morphologyEx(kerneled_img, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
 
     # closing  - dilation then opening. We need this. The object I am tracking (spherical red ball)
     # has white colored writing in it. I need these writings to be "masked" and not appear in the foreground object
-    kerneled_img = cv2.morphologyEx(kerneled_img, cv2.MORPH_CLOSE, (15,15))
+    kerneled_img = cv2.morphologyEx(kerneled_img, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
     return kerneled_img
 
 def detect_object(frame):
