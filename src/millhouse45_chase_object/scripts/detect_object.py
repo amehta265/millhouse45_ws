@@ -14,9 +14,8 @@ import rclpy
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, QoSHistoryPolicy
 from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge
-import cv2
 
-from detector import detect_object
+from detector import find_candidates, pick_ball, draw_debug
 from millhouse45_chase_object.msg import ObjLocation
 
 BEARING_TOPIC = '/obj/bearing'
@@ -25,6 +24,11 @@ DEBUG_IMG_TOPIC = '/obj_finder/compressed'
 # Horizontal field of view of the camera = how wide an angle the image covers, edge to edge.
 # 62.2 deg is the Pi Camera v2 spec.
 HFOV_DEG = 62.2
+
+# If the ball disappears for just a frame or two (motion blur while turning, a hand passing in front),
+# keep reporting where it last was instead of telling chase_object to stop. ~30 fps -> 3 frames is ~0.1 s.
+# Longer than that and we say "not found" for real
+HOLD_FRAMES = 3
 
 CUSTOM_QOS_PROFILE = QoSProfile(
     reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -40,10 +44,30 @@ def main():
     bearing_publisher = node.create_publisher(ObjLocation, BEARING_TOPIC, 5)
     debug_publisher = node.create_publisher(CompressedImage, DEBUG_IMG_TOPIC, 1)
 
+    # Where the ball was last time (x, y, r) and how many frames in a row we've missed it
+    track = {'last': None, 'missed': 0}
+
     def image_callback(img_msg):
         frame = bridge.compressed_imgmsg_to_cv2(img_msg, 'bgr8')
         width = frame.shape[1]
-        coords, radius, _ = detect_object(frame)
+
+        # Find every red blob, then pick the round one - preferring the one near where the ball just was
+        masked_img, candidates = find_candidates(frame)
+        ball = pick_ball(candidates, track['last'])
+
+        if ball is not None:
+            track['last'] = (ball['x'], ball['y'], ball['r'])
+            track['missed'] = 0
+            coords = (ball['x'], ball['y'])
+        else:
+            track['missed'] += 1
+            if track['last'] is not None and track['missed'] <= HOLD_FRAMES:
+                # Short dropout - reuse the last position
+                coords = (track['last'][0], track['last'][1])
+            else:
+                # Really lost it - forget the old position so we don't lock onto something near it later
+                track['last'] = None
+                coords = None
 
         # Same assumption as lab 2 - the image center is half the width
         image_center_x = width / 2.0
@@ -63,14 +87,17 @@ def main():
         bearing_publisher.publish(msg)
 
         # Only bother drawing + compressing the debug image if disp_cam is actually listening (saves the Pi some work)
+        # Shows camera + mask side by side: green circle = ball we picked, red outlines = red blobs we rejected
+        # (numbers on them are circularity/fill - handy for tuning MIN_CIRCULARITY / MIN_FILL in detector.py)
         if debug_publisher.get_subscription_count() > 0:
-            if msg.found:
-                cv2.circle(frame, (int(coords[0]), int(coords[1])), int(radius), (0, 255, 0), 2)
+            if ball is not None:
                 label = f"bearing: {math.degrees(msg.bearing):+.1f} deg"
+            elif msg.found:
+                label = f"holding last ({track['missed']})"
             else:
                 label = "no ball"
-            cv2.putText(frame, label, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            debug_publisher.publish(bridge.cv2_to_compressed_imgmsg(frame))
+            debug_img = draw_debug(frame, masked_img, candidates, ball, label)
+            debug_publisher.publish(bridge.cv2_to_compressed_imgmsg(debug_img))
 
     node.create_subscription(CompressedImage, '/image_raw/compressed', image_callback, CUSTOM_QOS_PROFILE)
 
