@@ -99,12 +99,17 @@ def main():
 
     def range_callback(msg):
         if not msg.found:
-            # Lost the ball (or the lidar can't see it) -> just stop and wait
-            stop()
+            # A single missed reading happens all the time (one lidar lookup misses the ball, camera blur while turning).
+            # Stopping on every one of them made the robot stop-start ("hesitate"). So instead we just ignore it and the
+            # robot keeps doing its last command. If the ball stays missing for longer than 'timeout' (0.5 s),
+            # the watchdog below stops the robot for real.
+            if state['last_seen'] is None:
+                # Already stopped - make sure we stay stopped
+                cmd_vel_publisher.publish(Twist())
             return
 
         now = node.get_clock().now().nanoseconds * 1e-9
-        # Time since the last reading.
+        # Time since the last reading. 0 on the first reading after a stop so the D term doesn't spike
         if state['last_seen'] is None:
             dt = 0.0
         else:
@@ -138,7 +143,8 @@ def main():
         cmd_vel_publisher.publish(twist)
 
     def watchdog():
-        # If detect_object / get_object_range die or wifi drops, don't keep driving on the last command
+        # Stops the robot if we haven't had a good reading for 'timeout' seconds - the ball is really gone,
+        # or detect_object / get_object_range died. Short gaps are ignored by range_callback above
         if state['last_seen'] is not None:
             now = node.get_clock().now().nanoseconds * 1e-9
             if now - state['last_seen'] > get_parameter_value('timeout'):
