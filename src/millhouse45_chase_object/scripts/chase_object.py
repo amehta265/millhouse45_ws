@@ -31,11 +31,11 @@ params = {
     'lin_kp': 1.0, 'lin_ki': 0.0, 'lin_kd': 0.05,# Defining tuning terms for linear controller
     'i_limit': 0.5, # Ceiling on integral term to prevent windup i.e. building up of past error
 
-    'ang_deadband': 0.07,        # rad (~3 deg) - close enough to facing the ball
-    'lin_deadband': 0.03,        # m - close enough to the desired distance
-    'max_ang_vel': 1.0,          # rad/s (burger can do ~2.8 but that's scary)
-    'max_lin_vel': 0.2,          # m/s   (burger max is 0.22)
-    'timeout': 0.5,              # s - stop if we haven't heard about the ball in this long
+    'ang_deadband': 0.07,        #  close enough to facing the ball
+    'lin_deadband': 0.03,        #  close enough to the desired distance
+    'max_ang_vel': 1.0,          # (burger can do ~2.8 but that's scary)
+    'max_lin_vel': 0.2,          # (burger max is 0.22)
+    'timeout': 0.5,              # stop if we haven't heard about the ball in this long
 }
 
 CUSTOM_QOS_PROFILE = QoSProfile(
@@ -99,17 +99,13 @@ def main():
 
     def range_callback(msg):
         if not msg.found:
-            # A single missed reading happens all the time (one lidar lookup misses the ball, camera blur while turning).
-            # Stopping on every one of them made the robot stop-start ("hesitate"). So instead we just ignore it and the
-            # robot keeps doing its last command. If the ball stays missing for longer than 'timeout' (0.5 s),
-            # the watchdog below stops the robot for real.
             if state['last_seen'] is None:
                 # Already stopped - make sure we stay stopped
                 cmd_vel_publisher.publish(Twist())
             return
 
         now = node.get_clock().now().nanoseconds * 1e-9
-        # Time since the last reading. 0 on the first reading after a stop so the D term doesn't spike
+        # Time since the last reading.
         if state['last_seen'] is None:
             dt = 0.0
         else:
@@ -136,15 +132,12 @@ def main():
             lin_pid.reset()
 
         # Slow the forward/backward speed down the more the ball is off to the side.
-        # cos(0) = 1 -> ball straight ahead, full speed. cos(30 deg) = 0.87 -> a bit slower.
-        # cos(90 deg) = 0 -> ball fully to the side, don't drive at all, just turn. max(0, ...) stops it going negative past 90 deg
         twist.linear.x *= max(0.0, math.cos(ang_error))
 
         cmd_vel_publisher.publish(twist)
 
     def watchdog():
-        # Stops the robot if we haven't had a good reading for 'timeout' seconds - the ball is really gone,
-        # or detect_object / get_object_range died. Short gaps are ignored by range_callback above
+        # If detect_object / get_object_range die or wifi drops, don't keep driving on the last command
         if state['last_seen'] is not None:
             now = node.get_clock().now().nanoseconds * 1e-9
             if now - state['last_seen'] > get_parameter_value('timeout'):

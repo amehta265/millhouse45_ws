@@ -17,7 +17,6 @@ install(PROGRAMS
   scripts/get_object_range.py
   scripts/chase_object.py
   scripts/disp_cam.py
-  scripts/hsv_tuner.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
