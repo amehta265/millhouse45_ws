@@ -28,7 +28,7 @@ So:
 
 | Parameter | Was | Now | What it does | Why / what to expect |
 |---|---|---|---|---|
-| `robot_radius` | 0.1 | **0.16** | Size of the circle the planner assumes the robot is. | The real burger is about 0.11 m from its centre to its furthest corner. 0.16 adds about 5 cm of padding. A gap narrower than 0.32 m is now solid for the planner, so it will not route through the narrow gap. The corridors (about 0.5 m) stay open. **This is the number to adjust after mapping (section 6).** |
+| `robot_radius` | 0.1 | **0.14** | Size of the circle the planner assumes the robot is. | Measured on our map: the narrow gap is about 0.20 m, the corridors about 0.5 m. 0.14 makes the gap solid for the planner and still leaves about 0.3 m of usable width in the corridors. We first tried 0.16, which left only about 0.2 m and made planning and the controller struggle in the corridors. |
 | `inflation_radius` | 1.0 local, 0.55 global | **0.40** both | How far from a wall cost is added. | Cost now only covers the area right next to walls. The robot can tell "centre of the corridor" from "hugging a wall". |
 | `cost_scaling_factor` | 3.0 | **5.0** | How quickly that cost fades. | Steeper fade, so the path is pushed away from walls without making the whole corridor expensive. |
 | `plugins` | had `voxel_layer` | **removed `voxel_layer`** | Which layers make up the costmap. | A 2D lidar already feeds the obstacle layer. The voxel layer marked the same obstacles a second time. The Nav2 tuning guide recommends the obstacle layer for 2D lidar. |
@@ -40,7 +40,7 @@ So:
 
 | Parameter | Was | Now | What it does | Why / what to expect |
 |---|---|---|---|---|
-| `use_astar` | false | **true** | Dijkstra or A* search. | The handout and slides describe A*. Same kind of path, searched faster. |
+| `use_astar` | false | **false** (unchanged) | Dijkstra or A* search. | We tried A*. On the lab robot it often failed with "Failed to create a plan from potential when a legal potential was found", so it stays on Dijkstra. |
 | `allow_unknown` | true | **false** | Whether paths may cross cells the map knows nothing about. | The map will have unknown patches behind walls and in corners. With this off, the planner stays in space we actually mapped, so it cannot sneak through a hole in the map. |
 | `tolerance` | 0.5 | **0.3** | How far from the goal the path may end if the goal is not reachable. | With the bigger robot radius a goal very close to a wall sits in the solid band. 0.3 m lets the planner still end up next to it, without stopping half a meter short. |
 
@@ -59,6 +59,7 @@ We switched from DWB to Regulated Pure Pursuit. The handout says DWB does not wo
 | `use_rotate_to_heading`, `rotate_to_heading_min_angle` | n/a | **true, 0.6 rad** | Turn in place first if the path starts more than about 35 degrees off. | The robot turns on the spot instead of swinging wide, which matters in a small maze. |
 | `use_collision_detection` | n/a | **true** | Stops if the path ahead hits a wall in the local costmap. | **This is what turns "a person steps in front of the robot" into a failure within about 0.3 s, which starts the recovery behavior.** If you see it stopping for no reason near walls, set it to false and rely on the planner failing. |
 | `controller_frequency` | 10 | **20** | How often a velocity command is computed. | Steadier steering. |
+| `FollowPath.transform_tolerance` | n/a | **1.0** | How old the map-to-odom transform may be before the controller refuses to use it. | In the lab it arrived 1 to 4 s late, and with 0.2 the controller kept throwing "Transform data too old". |
 | `progress_checker.required_movement_radius` | 0.5 | **0.2** | The robot must move this far within `movement_time_allowance` (10 s) or the controller fails. | Notices a stuck robot sooner, and does not complain about slow turns in tight areas. |
 | `general_goal_checker.xy_goal_tolerance` | 0.25 | **0.15** | How close counts as "arrived". | Ends up closer to the waypoint that the TAs will check. |
 | `general_goal_checker.yaw_goal_tolerance` | 0.25 | **3.14** | How well the final heading must match. | Waypoints are only (x, y). With this, the robot does not spin on the spot at every waypoint. Set it back to 0.25 if the TAs also check the heading. |
@@ -67,9 +68,9 @@ We switched from DWB to Regulated Pure Pursuit. The handout says DWB does not wo
 
 | Parameter | Was | Now | What it does | Why / what to expect |
 |---|---|---|---|---|
-| `max_beams` | 60 | **120** | Lidar beams used per update. | Sharper pose estimate in a small room. Cheap for the lab PC. |
-| `update_min_d` | 0.25 | **0.1** | How far the robot moves before AMCL updates. | Every 10 cm instead of every 25 cm, so the pose keeps up while the robot weaves through the maze. |
-| `update_min_a` | 0.2 | **0.1** | How much it turns before an update. | Same reason, for turning. |
+| `max_beams` | 60 | **60** (unchanged) | Lidar beams used per update. | We tried 120. AMCL was already falling behind in the lab, so it stays at 60. |
+| `update_min_d` | 0.25 | **0.25** (unchanged) | How far the robot moves before AMCL updates. | Kept at the course value, same reason as `max_beams`. |
+| `update_min_a` | 0.2 | **0.2** (unchanged) | How much it turns before an update. | Same. |
 
 ### Other fixes in the file
 
@@ -103,7 +104,7 @@ The handout says you cannot use the RViz GUI to give waypoints on the day. So th
 
 Open the map in RViz and click points with "Publish Point" while running `ros2 topic echo /clicked_point` to measure.
 
-1. **Width of the narrow gap.** Set `robot_radius` (both costmaps) to about `gap_width / 2 + 0.02`. Example: gap 0.25 m gives 0.145, so 0.16 already blocks it. Gap 0.35 m means use about 0.195.
+1. **Width of the narrow gap.** Set `robot_radius` (both costmaps) to about `gap_width / 2 + 0.02`. Our gap is about 0.20 m, and 0.14 blocks it. If the walls get moved and the gap widens, raise it.
 2. **Width of the narrowest corridor the robot must use.** It must be wider than `2 * robot_radius + 0.1`. If the robot refuses real corridors ("no valid path"), the radius is too big.
 
 Then drive a few goals in RViz first. What to watch:
