@@ -1,3 +1,6 @@
+// Brian Huntley, Ankit Mehta (Millhouse - 45)
+// Lab 5 - beep_and_divert_bridge
+
 #pragma once
 
 #include <memory>

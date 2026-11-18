@@ -7,9 +7,6 @@ Lab 5 - waypoint_navigator
 
 # Sends the lab waypoints to Nav2 one after the other (map frame), waiting for each one to finish.
 #
-# Click mode (no --wp): click the waypoints in RViz with "Publish Point", in order, then press Enter.
-#   ros2 run turtlebot3_recovery_lab waypoint_navigator.py
-#
 # Typed mode:
 #   ros2 run turtlebot3_recovery_lab waypoint_navigator.py --wp 1.2,0.4 --wp 2.0,1.1 --wp 0.3,1.5
 

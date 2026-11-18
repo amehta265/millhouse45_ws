@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Brian Huntley
+Ankit Mehta
+Lab 5 - recovery_student
+"""
 
 import math
 
@@ -115,15 +120,7 @@ class StudentRecoveryServer(Node):
             'Nav2 stalled! Sounding alarm and calculating diversion route...'
         )
 
-        # --------------------------------------------------
-        # STEP 1: Trigger the TurtleBot3 buzzer
-        # --------------------------------------------------
-
         self.beep(3)    # ERROR
-
-        # --------------------------------------------------
-        # STEP 2: Compute recovery waypoint
-        # --------------------------------------------------
 
         # Back up: the waypoint is BACKUP_DISTANCE behind the robot, facing the same way.
         # The path ahead is blocked, so the way we came is the safest place to go.
@@ -154,21 +151,12 @@ class StudentRecoveryServer(Node):
         # Keep the robot's current heading
         response.recovery_pose.pose.orientation = q
 
-        # --------------------------------------------------
-        # STEP 3: Return recovery waypoint
-        # --------------------------------------------------
-
         response.success = True
 
         self.get_logger().info(
             f'Recovery waypoint generated: '
             f'({recovery_x:.2f}, {recovery_y:.2f})'
         )
-
-        # ---------------------------------------------------
-        # STEP 4: Trigger a different TurtleBot3 buzzer if a
-        # recovery point was found
-        # ---------------------------------------------------
 
         self.beep(1)    # ON
 

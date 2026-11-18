@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!-- Brian Huntley, Ankit Mehta (Millhouse - 45) - Lab 5 -->
 <package format="3">
   <name>turtlebot3_recovery_lab</name>
   <version>1.0.0</version>
