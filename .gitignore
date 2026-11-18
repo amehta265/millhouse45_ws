@@ -6,3 +6,9 @@ __pycache__/
 .venv/
 .vscode/
 docs/
+
+# lab6 generated files
+lab6/test_set/
+lab6/*.npz
+lab6/preview*.jpg
+lab6/*.zip
