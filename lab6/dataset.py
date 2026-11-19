@@ -6,7 +6,7 @@ import shutil
 
 import numpy as np
 
-RUN_LENGTH = 5   # consecutive shots of the same sign are near-copies; keep them together
+RUN_LENGTH = 5   # Keep consecutive shots of the same sign together as they are near copies
 
 # Near-identical photos found across two batches. Both copies always stay in dev.
 NEAR_DUPLICATES = [("2025F_imgs/099", "2025F_Gimgs/083"),
@@ -15,7 +15,6 @@ NEAR_DUPLICATES = [("2025F_imgs/099", "2025F_Gimgs/083"),
 
 
 def load_samples(data_root):
-    """Find every labels.txt under data_root. Each folder holding one is a batch."""
     samples = []
     for labels_file in sorted(glob.glob(os.path.join(data_root, "**", "labels.txt"), recursive=True)):
         folder = os.path.dirname(labels_file)
@@ -31,7 +30,6 @@ def load_samples(data_root):
 
 
 def assign_groups(samples):
-    """Group each batch+class into runs of RUN_LENGTH consecutive filenames."""
     by_stratum = {}
     for s in samples:
         by_stratum.setdefault((s["batch"], s["label"]), []).append(s)
@@ -48,7 +46,6 @@ def assign_groups(samples):
 
 
 def split_dev_test(samples, test_frac, seed):
-    """Hold out about test_frac of the groups in every batch+class as the test set."""
     by_stratum = assign_groups(samples)
     duplicate_ids = {i for pair in NEAR_DUPLICATES for i in pair}
     rng = np.random.default_rng(seed)
@@ -63,7 +60,6 @@ def split_dev_test(samples, test_frac, seed):
 
 
 def write_folder(samples, out_dir):
-    """Copy samples into one folder in the grader's format (images + labels.txt)."""
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)
     os.makedirs(out_dir)
